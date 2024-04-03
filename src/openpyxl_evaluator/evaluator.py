@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
+from typing import Any
 
 from openpyxl.formula.tokenizer import Tokenizer, Token
 from openpyxl.worksheet.worksheet import Worksheet
@@ -42,6 +43,8 @@ class Evaluator:
             self._parsed_expressions.append(self._consume_function(tokens))
         elif _is_operand(next_token):
             self._parsed_expressions.append(self._consume_operand(tokens))
+        elif _is_infix_operator(next_token):
+            self._parsed_expressions.append(self._consume_infix_operator(tokens))
         else:
             raise NotImplementedError(f"Token {next_token} not yet implemented")
 
@@ -70,10 +73,20 @@ class Evaluator:
         if next_token.subtype == Token.TEXT:
             return Value(next_token.value.strip('"'))
 
+        if next_token.subtype == Token.NUMBER:
+            return Value(int(next_token.value))
+
         if next_token.subtype == Token.RANGE:
             return Range(self.cell.parent, next_token.value)
 
         raise NotImplementedError(f"Operand {next_token} not yet implemented")
+
+    def _consume_infix_operator(self, tokens):
+        left = self._parsed_expressions.pop()
+        operator = tokens.pop(0).value
+        right = self._consume_operand(tokens)
+
+        return InfixOperator(left, operator, right)
 
 
 class EvaluationError(Exception):
@@ -82,7 +95,7 @@ class EvaluationError(Exception):
 
 @dataclass(frozen=True)
 class Value:
-    value: str
+    value: Any
 
     def evaluate(self):
         return self.value
@@ -102,6 +115,25 @@ class Range:
             )
 
         return Evaluator(self.worksheet[self.range]).value
+
+@dataclass(frozen=True)
+class InfixOperator:
+    left: Any
+    operator: str
+    right: Any
+
+    def evaluate(self):
+        if self.operator == '+':
+            return self.left.evaluate() + self.right.evaluate()
+
+        if self.operator == '-':
+            return self.left.evaluate() - self.right.evaluate()
+
+        if self.operator == '*':
+            return self.left.evaluate() * self.right.evaluate()
+
+        if self.operator == '/':
+            return self.left.evaluate() / self.right.evaluate()
 
 
 @dataclass(frozen=True)
@@ -133,3 +165,6 @@ def _is_argument_separator(token):
 
 def _is_operand(token):
     return token.type == Token.OPERAND
+
+def _is_infix_operator(token):
+    return token.type == Token.OP_IN

@@ -46,6 +46,17 @@ class TestEvaluator:
 
         assert Evaluator(cell).value == 33
 
+    @pytest.mark.parametrize('formula, result', [
+        ("=1+1", 2),
+        ("=1-1", 0),
+        ("=1*4", 4),
+        ("=4/2", 2)
+    ])
+    def test_infix_operators(self, build_cell, formula, result):
+        cell = build_cell(formula)
+
+        assert Evaluator(cell).value == result
+
     @pytest.fixture
     def build_cell(self, worksheet):
         def _build_cell(value):
