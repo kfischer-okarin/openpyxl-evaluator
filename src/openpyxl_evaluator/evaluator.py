@@ -3,7 +3,7 @@ from datetime import datetime
 from functools import cached_property
 from typing import Any
 
-from openpyxl.formula.tokenizer import Tokenizer, Token
+from openpyxl.formula.tokenizer import Token, Tokenizer
 from openpyxl.worksheet.worksheet import Worksheet
 
 
@@ -17,14 +17,14 @@ class Evaluator:
         try:
             if self._is_formula:
                 return self._evaluate_formula()
+        except NotImplementedError as e:
+            raise EvaluationError(self.cell) from e
 
-            return self.cell.value
-        except Exception as e:
-            raise EvaluationError(f"Error evaluating cell '{self.cell.value}': {e}") from e
+        return self.cell.value
 
     @property
     def _is_formula(self):
-        return self.cell.data_type == 'f'
+        return self.cell.data_type == "f"
 
     def _evaluate_formula(self):
         tokens = Tokenizer(self.cell.value).items
@@ -46,17 +46,18 @@ class Evaluator:
         elif _is_infix_operator(next_token):
             self._parsed_expressions.append(self._consume_infix_operator(tokens))
         else:
-            raise NotImplementedError(f"Token {next_token} not yet implemented")
+            error_message = f"Token {next_token} not yet implemented"
+            raise NotImplementedError(error_message)
 
     def _consume_function(self, tokens):
         next_token = tokens.pop(0)
-        name = next_token.value[:-1] # Remove the opening parenthesis
+        name = next_token.value[:-1]  # Remove the opening parenthesis
         operands = []
         while not _is_function_end(tokens[0]):
             self._consume_function_operand(tokens)
             operands.append(self._parsed_expressions.pop())
 
-        tokens.pop(0) # Remove the closing parenthesis
+        tokens.pop(0)  # Remove the closing parenthesis
 
         return Function(name, operands)
 
@@ -90,7 +91,8 @@ class Evaluator:
         if next_token.subtype == Token.RANGE:
             return Range(self.cell.parent, next_token.value)
 
-        raise NotImplementedError(f"Operand {next_token} not yet implemented")
+        error_message = f"Operand {next_token} not yet implemented"
+        raise NotImplementedError(error_message)
 
     def _consume_infix_operator(self, tokens):
         left = self._parsed_expressions.pop()
@@ -101,7 +103,8 @@ class Evaluator:
 
 
 class EvaluationError(Exception):
-    pass
+    def __init__(self, cell):
+        super().__init__(f"Error evaluating cell '{cell}'")
 
 
 @dataclass(frozen=True)
@@ -115,17 +118,15 @@ class Value:
 @dataclass(frozen=True)
 class Range:
     worksheet: Worksheet
-    range: str
+    reference: str
 
     def evaluate(self):
-        target_range = self.worksheet[self.range]
+        target_range = self.worksheet[self.reference]
         if isinstance(target_range, tuple):
-            return tuple(
-                tuple(Evaluator(cell).value for cell in row)
-                for row in target_range
-            )
+            return tuple(tuple(Evaluator(cell).value for cell in row) for row in target_range)
 
-        return Evaluator(self.worksheet[self.range]).value
+        return Evaluator(self.worksheet[self.reference]).value
+
 
 @dataclass(frozen=True)
 class InfixOperator:
@@ -134,17 +135,20 @@ class InfixOperator:
     right: Any
 
     def evaluate(self):
-        if self.operator == '+':
+        if self.operator == "+":
             return self.left.evaluate() + self.right.evaluate()
 
-        if self.operator == '-':
+        if self.operator == "-":
             return self.left.evaluate() - self.right.evaluate()
 
-        if self.operator == '*':
+        if self.operator == "*":
             return self.left.evaluate() * self.right.evaluate()
 
-        if self.operator == '/':
+        if self.operator == "/":
             return self.left.evaluate() / self.right.evaluate()
+
+        error_message = f"Unknown Infix Operator: {self.operator}"
+        raise ValueError(error_message)
 
 
 @dataclass(frozen=True)
@@ -153,35 +157,40 @@ class Function:
     operands: list
 
     def evaluate(self):
-        if self.name == 'DATEVALUE':
-            return datetime.strptime(self.operands[0].evaluate(), '%Y-%m-%d').date()
+        if self.name == "DATEVALUE":
+            return datetime.strptime(self.operands[0].evaluate(), "%Y-%m-%d").date()  # noqa: DTZ007
 
-        if self.name == 'SUM':
+        if self.name == "SUM":
             return sum(
-                sum(cell or 0 for cell in row) # Empty cells (None) are treated as 0
+                sum(cell or 0 for cell in row)  # Empty cells (None) are treated as 0
                 for row in self.operands[0].evaluate()
             )
 
-        if self.name == 'IFERROR':
+        if self.name == "IFERROR":
             try:
                 return self.operands[0].evaluate()
-            except Exception:
+            except ZeroDivisionError:
                 return self.operands[1].evaluate()
 
-        raise NotImplementedError(f"Function {self.name} not yet implemented")
+        error_message = f"Function {self.name} not yet implemented"
+        raise NotImplementedError(error_message)
 
 
 def _is_function_start(token):
     return token.type == Token.FUNC and token.subtype == Token.OPEN
 
+
 def _is_function_end(token):
     return token.type == Token.FUNC and token.subtype == Token.CLOSE
 
+
 def _is_argument_separator(token):
-    return token.type == Token.SEP or token.type == Token.WSPACE or token.value == ','
+    return token.type in {Token.SEP, Token.WSPACE} or token.value == ","
+
 
 def _is_operand(token):
     return token.type == Token.OPERAND
+
 
 def _is_infix_operator(token):
     return token.type == Token.OP_IN
