@@ -52,6 +52,16 @@ class TestEvaluator:
 
         assert Evaluator(cell).value == 33
 
+    def test_iferror(self, build_cell, worksheet):
+        worksheet['A1'] = 42
+        cell = build_cell('=IFERROR(42/A1, "Error")')
+
+        assert Evaluator(cell).value == 1
+
+        worksheet['A1'] = 0
+
+        assert Evaluator(cell).value == 'Error'
+
     @pytest.mark.parametrize('formula, result', [
         ("=1+1", 2),
         ("=1-1", 0),

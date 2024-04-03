@@ -67,6 +67,14 @@ class Evaluator:
             if _is_function_end(tokens[0]):
                 break
 
+            if _is_argument_separator(tokens[0]):
+                self._consume_argument_separator(tokens)
+                break
+
+    def _consume_argument_separator(self, tokens):
+        while _is_argument_separator(tokens[0]):
+            tokens.pop(0)
+
     def _consume_operand(self, tokens):
         next_token = tokens.pop(0)
 
@@ -154,6 +162,12 @@ class Function:
                 for row in self.operands[0].evaluate()
             )
 
+        if self.name == 'IFERROR':
+            try:
+                return self.operands[0].evaluate()
+            except Exception:
+                return self.operands[1].evaluate()
+
         raise NotImplementedError(f"Function {self.name} not yet implemented")
 
 
@@ -164,7 +178,7 @@ def _is_function_end(token):
     return token.type == Token.FUNC and token.subtype == Token.CLOSE
 
 def _is_argument_separator(token):
-    return token.type == Token.SEP
+    return token.type == Token.SEP or token.type == Token.WSPACE or token.value == ','
 
 def _is_operand(token):
     return token.type == Token.OPERAND
