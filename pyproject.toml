@@ -9,7 +9,10 @@ description = 'Evaluate Formulas in OpenPyXL workbooks '
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
-keywords = []
+keywords = [
+  "excel",
+  "formula"
+]
 authors = [
   { name = "Kevin Fischer", email = "kfischer_okarin@yahoo.co.jp" },
 ]
@@ -29,9 +32,9 @@ dependencies = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/unknown/openpyxl-evaluator#readme"
-Issues = "https://github.com/unknown/openpyxl-evaluator/issues"
-Source = "https://github.com/unknown/openpyxl-evaluator"
+Documentation = "https://github.com/kfischer-okarin/openpyxl-evaluator#readme"
+Issues = "https://github.com/kfischer-okarin/openpyxl-evaluator/issues"
+Source = "https://github.com/kfischer-okarin/openpyxl-evaluator"
 
 [tool.hatch.version]
 path = "src/openpyxl_evaluator/__about__.py"
