@@ -3,6 +3,7 @@ from datetime import datetime
 from functools import cached_property
 
 from openpyxl.formula.tokenizer import Tokenizer, Token
+from openpyxl.worksheet.worksheet import Worksheet
 
 
 class Evaluator:
@@ -69,6 +70,9 @@ class Evaluator:
         if next_token.subtype == Token.TEXT:
             return Value(next_token.value.strip('"'))
 
+        if next_token.subtype == Token.RANGE:
+            return Range(self.cell.parent, next_token.value)
+
         raise NotImplementedError(f"Operand {next_token} not yet implemented")
 
 
@@ -76,7 +80,7 @@ class EvaluationError(Exception):
     pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class Value:
     value: str
 
@@ -84,7 +88,16 @@ class Value:
         return self.value
 
 
-@dataclass
+@dataclass(frozen=True)
+class Range:
+    worksheet: Worksheet
+    range: str
+
+    def evaluate(self):
+        return Evaluator(self.worksheet[self.range]).value
+
+
+@dataclass(frozen=True)
 class Function:
     name: str
     operands: list

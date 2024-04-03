@@ -1,6 +1,7 @@
 import datetime
 
 from openpyxl.cell import Cell
+from openpyxl.worksheet.worksheet import Worksheet
 
 import pytest
 
@@ -23,9 +24,19 @@ class TestEvaluator:
 
         assert Evaluator(cell).value == datetime.date(2024, 3, 3)
 
+    def test_reference(self, build_cell, worksheet):
+        worksheet['A1'] = 42
+        cell = build_cell('=A1')
+
+        assert Evaluator(cell).value == 42
+
     @pytest.fixture
-    def build_cell(self):
+    def build_cell(self, worksheet):
         def _build_cell(value):
-            return Cell(None, None, None, value)
+            return Cell(worksheet, None, None, value)
 
         return _build_cell
+
+    @pytest.fixture
+    def worksheet(self):
+        return Worksheet(None, 'Sheet1')
