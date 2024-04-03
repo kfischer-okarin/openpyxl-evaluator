@@ -94,6 +94,13 @@ class Range:
     range: str
 
     def evaluate(self):
+        target_range = self.worksheet[self.range]
+        if isinstance(target_range, tuple):
+            return tuple(
+                tuple(Evaluator(cell).value for cell in row)
+                for row in target_range
+            )
+
         return Evaluator(self.worksheet[self.range]).value
 
 
