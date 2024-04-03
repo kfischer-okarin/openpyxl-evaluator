@@ -38,6 +38,14 @@ class TestEvaluator:
 
         assert Evaluator(cell).value == ((42, 44), (43, None))
 
+    def test_sum(self, build_cell, worksheet):
+        worksheet['A1'] = 10
+        worksheet['A2'] = 11
+        worksheet['B1'] = 12
+        cell = build_cell('=SUM(A1:B2)')
+
+        assert Evaluator(cell).value == 33
+
     @pytest.fixture
     def build_cell(self, worksheet):
         def _build_cell(value):

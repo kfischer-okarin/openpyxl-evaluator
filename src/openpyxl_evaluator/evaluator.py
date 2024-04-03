@@ -113,6 +113,12 @@ class Function:
         if self.name == 'DATEVALUE':
             return datetime.strptime(self.operands[0].evaluate(), '%Y-%m-%d').date()
 
+        if self.name == 'SUM':
+            return sum(
+                sum(cell or 0 for cell in row) # Empty cells (None) are treated as 0
+                for row in self.operands[0].evaluate()
+            )
+
         raise NotImplementedError(f"Function {self.name} not yet implemented")
 
 
