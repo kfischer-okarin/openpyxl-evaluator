@@ -56,7 +56,7 @@ class TestEvaluator:
         ("=1+1", 2),
         ("=1-1", 0),
         ("=1*4", 4),
-        ("=4/2", 2)
+        ("=5.2/2", 2.6)
     ])
     def test_infix_operators(self, build_cell, formula, result):
         cell = build_cell(formula)

@@ -74,7 +74,10 @@ class Evaluator:
             return Value(next_token.value.strip('"'))
 
         if next_token.subtype == Token.NUMBER:
-            return Value(int(next_token.value))
+            try:
+                return Value(int(next_token.value))
+            except ValueError:
+                return Value(float(next_token.value))
 
         if next_token.subtype == Token.RANGE:
             return Range(self.cell.parent, next_token.value)
